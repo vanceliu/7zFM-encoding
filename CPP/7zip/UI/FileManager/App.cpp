@@ -272,52 +272,70 @@ void CApp::ReloadToolbars()
     _toolBar.AutoSize();
   }
 
-  CreateEncodingCombo();
+  CreateEncodingButton();
 }
 
-void CApp::CreateEncodingCombo()
+void CApp::CreateEncodingButton()
 {
-  if (_encodingCombo)
+  if (_encodingButton)
   {
-    ::DestroyWindow(_encodingCombo);
-    _encodingCombo = NULL;
+    ::DestroyWindow(_encodingButton);
+    _encodingButton = NULL;
   }
 
   RECT tbRect;
   ::GetWindowRect(_toolBar, &tbRect);
   ::MapWindowPoints(NULL, _window, (LPPOINT)&tbRect, 2);
 
-  _encodingCombo = ::CreateWindowExW(0, L"COMBOBOX", NULL,
-      WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
-      tbRect.right + 8, tbRect.top + 2, 140, 200,
+  int btnHeight = tbRect.bottom - tbRect.top;
+  _encodingButton = ::CreateWindowExW(0, L"BUTTON", L"Encoding",
+      WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
+      tbRect.right + 8, tbRect.top, 80, btnHeight,
       _window, (HMENU)(UINT_PTR)IDC_ENCODING_COMBO, g_hInstance, NULL);
 
-  if (_encodingCombo)
+  if (_encodingButton)
   {
-    ::SendMessageW(_encodingCombo, WM_SETFONT,
+    ::SendMessageW(_encodingButton, WM_SETFONT,
         (WPARAM)::GetStockObject(DEFAULT_GUI_FONT), TRUE);
-
-    const CEncodingInfo *encodings = CEncodingSwitch::GetEncodings();
-    unsigned num = CEncodingSwitch::GetNumEncodings();
-    for (unsigned i = 0; i < num; i++)
-      ::SendMessageW(_encodingCombo, CB_ADDSTRING, 0, (LPARAM)encodings[i].Name);
-
-    ::SendMessageW(_encodingCombo, CB_SETCURSEL,
-        (WPARAM)g_EncodingSwitch.GetCurrentIndex(), 0);
   }
 }
 
-void CApp::OnEncodingChanged()
+void CApp::ShowEncodingMenu()
 {
-  if (!_encodingCombo)
+  if (!_encodingButton)
     return;
-  int sel = (int)::SendMessageW(_encodingCombo, CB_GETCURSEL, 0, 0);
-  if (sel >= 0)
+
+  RECT btnRect;
+  ::GetWindowRect(_encodingButton, &btnRect);
+
+  HMENU hMenu = ::CreatePopupMenu();
+  const CEncodingInfo *encodings = CEncodingSwitch::GetEncodings();
+  unsigned num = CEncodingSwitch::GetNumEncodings();
+  unsigned current = g_EncodingSwitch.GetCurrentIndex();
+
+  for (unsigned i = 0; i < num; i++)
   {
-    g_EncodingSwitch.SetCurrentIndex((unsigned)sel);
+    UINT flags = MF_STRING;
+    if (i == current)
+      flags |= MF_CHECKED;
+    ::AppendMenuW(hMenu, flags, IDM_ENCODING_CHANGED + i, encodings[i].Name);
+  }
+
+  ::TrackPopupMenu(hMenu, TPM_LEFTALIGN | TPM_TOPALIGN,
+      btnRect.left, btnRect.bottom, 0, _window, NULL);
+  ::DestroyMenu(hMenu);
+}
+
+void CApp::OnEncodingSelected(unsigned index)
+{
+  if (index < CEncodingSwitch::GetNumEncodings())
+  {
+    g_EncodingSwitch.SetCurrentIndex(index);
     RefreshAllPanels();
   }
 }
+
+void CApp::SaveToolbarChanges()
 {
   SaveToolbar();
   ReloadToolbars();

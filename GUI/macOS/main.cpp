@@ -11,5 +11,9 @@ int main(int argc, char *argv[])
     LWMainWindow window;
     window.show();
 
+    // Open archive from command line argument
+    if (argc > 1)
+        window.openFile(QString::fromUtf8(argv[1]));
+
     return app.exec();
 }

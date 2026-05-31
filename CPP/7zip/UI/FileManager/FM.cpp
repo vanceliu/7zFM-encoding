@@ -895,10 +895,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
     {
       unsigned wmId    = LOWORD(wParam);
       unsigned wmEvent = HIWORD(wParam);
-      // LWZip: Handle encoding ComboBox selection change
-      if ((HWND)lParam == g_App._encodingCombo && wmEvent == CBN_SELCHANGE)
+      // LWZip: Handle encoding button click
+      if (wmId == IDC_ENCODING_COMBO && wmEvent == BN_CLICKED)
       {
-        g_App.OnEncodingChanged();
+        g_App.ShowEncodingMenu();
+        return 0;
+      }
+      // LWZip: Handle encoding menu selection
+      if (wmId >= IDM_ENCODING_CHANGED && wmId < IDM_ENCODING_CHANGED + CEncodingSwitch::GetNumEncodings())
+      {
+        g_App.OnEncodingSelected(wmId - IDM_ENCODING_CHANGED);
         return 0;
       }
       if ((HWND) lParam != NULL && wmEvent != 0)
@@ -1209,14 +1215,14 @@ void CApp::MoveSubWindows()
     headerSize += Window_GetRealHeight(_toolBar);
   }
 
-  // LWZip: Reposition encoding ComboBox next to toolbar
-  if (_encodingCombo && _toolBar)
+  // LWZip: Reposition encoding button next to toolbar
+  if (_encodingButton && _toolBar)
   {
     RECT tbRect;
     ::GetWindowRect(_toolBar, &tbRect);
     ::MapWindowPoints(NULL, hWnd, (LPPOINT)&tbRect, 2);
-    int comboH = tbRect.bottom - tbRect.top - 4;
-    ::MoveWindow(_encodingCombo, xSize - 148, tbRect.top + 2, 140, 200, TRUE);
+    int btnH = tbRect.bottom - tbRect.top;
+    ::MoveWindow(_encodingButton, xSize - 88, tbRect.top, 80, btnH, TRUE);
   }
   
   int ySize = MyMax((int)(rect.bottom - headerSize), 0);

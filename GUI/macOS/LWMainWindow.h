@@ -6,14 +6,18 @@
 #include <QTableView>
 #include <QSplitter>
 #include <QToolBar>
+#include <QToolButton>
+#include <QMenu>
 #include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
 #include <QStatusBar>
 #include <QStandardItemModel>
 #include <QProcess>
+#include <QActionGroup>
 
 #include "LWEncodingSwitch.h"
+#include "LWArchiveHandler.h"
 
 class LWMainWindow : public QMainWindow
 {
@@ -21,6 +25,7 @@ class LWMainWindow : public QMainWindow
 
 public:
     explicit LWMainWindow(QWidget *parent = nullptr);
+    void openFile(const QString &path) { loadArchive(path); }
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -35,7 +40,7 @@ private slots:
     void onMove();
     void onDelete();
     void onInfo();
-    void onEncodingChanged(int index);
+    void onEncodingSelected(QAction *action);
     void onNavigateUp();
     void onPathEntered();
     void onItemDoubleClicked(const QModelIndex &index);
@@ -53,7 +58,9 @@ private:
     QTreeView *m_folderTree = nullptr;
     QTableView *m_fileTable = nullptr;
     QLineEdit *m_pathEdit = nullptr;
-    QComboBox *m_encodingCombo = nullptr;
+    QToolButton *m_encodingButton = nullptr;
+    QMenu *m_encodingMenu = nullptr;
+    QActionGroup *m_encodingGroup = nullptr;
     QLabel *m_statusLabel = nullptr;
 
     // Models
@@ -62,9 +69,9 @@ private:
 
     // State
     LWEncodingSwitch m_encoding;
+    LWArchiveHandler *m_archiveHandler = nullptr;
     QString m_archivePath;
     QString m_internalPath;
-    QProcess *m_7zProcess = nullptr;
 };
 
 #endif

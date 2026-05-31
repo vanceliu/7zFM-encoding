@@ -81,8 +81,8 @@ public:
   #endif
   NWindows::NControl::CToolBar _toolBar;
 
-  // LWZip: Encoding switch ComboBox
-  HWND _encodingCombo;
+  // LWZip: Encoding switch button
+  HWND _encodingButton;
 
   CDropTarget *_dropTargetSpec;
   CMyComPtr<IDropTarget> _dropTarget;
@@ -93,7 +93,7 @@ public:
 
   CApp():
     _window(NULL),
-    _encodingCombo(NULL),
+    _encodingButton(NULL),
     AutoRefresh_Mode(true),
     NumPanels(2),
     LastFocusedPanel(0)
@@ -252,8 +252,9 @@ public:
   void SetBookmark(unsigned index) { GetFocusedPanel().SetBookmark(index); }
 
   void ReloadToolbars();
-  void CreateEncodingCombo();
-  void OnEncodingChanged();
+  void CreateEncodingButton();
+  void ShowEncodingMenu();
+  void OnEncodingSelected(unsigned index);
   void ReadToolbar()
   {
     const UInt32 mask = ReadToolbarsMask();

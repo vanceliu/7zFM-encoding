@@ -5,6 +5,7 @@
 #include <QStatusBar>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QInputDialog>
 #include <QHeaderView>
 #include <QDragEnterEvent>
 #include <QDropEvent>
@@ -16,6 +17,7 @@
 
 LWMainWindow::LWMainWindow(QWidget *parent)
     : QMainWindow(parent)
+    , m_archiveHandler(new LWArchiveHandler(this))
 {
     setupUI();
     setupMenuBar();
@@ -27,6 +29,13 @@ LWMainWindow::LWMainWindow(QWidget *parent)
 
     m_statusLabel = new QLabel(tr("Ready"), this);
     statusBar()->addWidget(m_statusLabel);
+
+    connect(m_archiveHandler, &LWArchiveHandler::operationFinished,
+            [this](bool success, const QString &msg) {
+        m_statusLabel->setText(msg);
+        if (!success)
+            QMessageBox::critical(this, tr("Error"), msg);
+    });
 }
 
 void LWMainWindow::setupUI()
@@ -108,33 +117,41 @@ void LWMainWindow::setupToolBar()
 {
     auto *toolbar = addToolBar(tr("Archive"));
     toolbar->setMovable(false);
+    toolbar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    toolbar->setIconSize(QSize(32, 32));
 
     toolbar->addAction(tr("Add"), this, &LWMainWindow::onAdd);
     toolbar->addAction(tr("Extract"), this, &LWMainWindow::onExtract);
     toolbar->addAction(tr("Test"), this, &LWMainWindow::onTest);
-    toolbar->addSeparator();
     toolbar->addAction(tr("Copy"), this, &LWMainWindow::onCopy);
     toolbar->addAction(tr("Move"), this, &LWMainWindow::onMove);
     toolbar->addAction(tr("Delete"), this, &LWMainWindow::onDelete);
     toolbar->addAction(tr("Info"), this, &LWMainWindow::onInfo);
 
-    // Encoding switch - right side of toolbar
-    auto *spacer = new QWidget(this);
-    spacer->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Preferred);
-    toolbar->addWidget(spacer);
+    // Encoding button with popup menu (like Bandizip's "字碼頁")
+    m_encodingMenu = new QMenu(this);
+    m_encodingGroup = new QActionGroup(this);
+    m_encodingGroup->setExclusive(true);
 
-    auto *encLabel = new QLabel(tr("Encoding:"), this);
-    toolbar->addWidget(encLabel);
+    const auto &encodings = LWEncodingSwitch::encodings();
+    for (int i = 0; i < encodings.size(); i++) {
+        QAction *action = m_encodingMenu->addAction(encodings[i].name);
+        action->setCheckable(true);
+        action->setData(i);
+        m_encodingGroup->addAction(action);
+        if (i == m_encoding.currentIndex())
+            action->setChecked(true);
+    }
 
-    m_encodingCombo = new QComboBox(this);
-    m_encodingCombo->setMinimumWidth(130);
-    for (const auto &enc : LWEncodingSwitch::encodings())
-        m_encodingCombo->addItem(enc.displayName);
-    m_encodingCombo->setCurrentIndex(m_encoding.currentIndex());
-    toolbar->addWidget(m_encodingCombo);
+    m_encodingButton = new QToolButton(this);
+    m_encodingButton->setText(tr("Encoding"));
+    m_encodingButton->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
+    m_encodingButton->setPopupMode(QToolButton::InstantPopup);
+    m_encodingButton->setMenu(m_encodingMenu);
+    toolbar->addWidget(m_encodingButton);
 
-    connect(m_encodingCombo, QOverload<int>::of(&QComboBox::currentIndexChanged),
-            this, &LWMainWindow::onEncodingChanged);
+    connect(m_encodingGroup, &QActionGroup::triggered,
+            this, &LWMainWindow::onEncodingSelected);
 }
 
 void LWMainWindow::dragEnterEvent(QDragEnterEvent *event)
@@ -163,12 +180,20 @@ void LWMainWindow::onOpenArchive()
 
 void LWMainWindow::onExtract()
 {
-    if (m_archivePath.isEmpty()) return;
+    if (!m_archiveHandler->isOpen()) return;
     QString dir = QFileDialog::getExistingDirectory(this, tr("Extract To"));
     if (dir.isEmpty()) return;
 
-    // TODO: call 7zip core extract with current encoding
+    QString password;
+    if (m_archiveHandler->isEncrypted()) {
+        bool ok;
+        password = QInputDialog::getText(this, tr("Password"),
+            tr("Enter password:"), QLineEdit::Password, QString(), &ok);
+        if (!ok) return;
+    }
+
     m_statusLabel->setText(tr("Extracting..."));
+    m_archiveHandler->extract(dir, password);
 }
 
 void LWMainWindow::onAdd()
@@ -178,9 +203,9 @@ void LWMainWindow::onAdd()
 
 void LWMainWindow::onTest()
 {
-    if (m_archivePath.isEmpty()) return;
-    // TODO: test archive integrity
+    if (!m_archiveHandler->isOpen()) return;
     m_statusLabel->setText(tr("Testing..."));
+    // TODO: run 7z t command
 }
 
 void LWMainWindow::onCopy() {}
@@ -188,8 +213,9 @@ void LWMainWindow::onMove() {}
 void LWMainWindow::onDelete() {}
 void LWMainWindow::onInfo() {}
 
-void LWMainWindow::onEncodingChanged(int index)
+void LWMainWindow::onEncodingSelected(QAction *action)
 {
+    int index = action->data().toInt();
     m_encoding.setCurrentIndex(index);
     refreshList();
     m_statusLabel->setText(tr("Encoding: %1").arg(m_encoding.currentName()));
@@ -214,7 +240,14 @@ void LWMainWindow::onItemDoubleClicked(const QModelIndex &index)
 {
     if (!index.isValid()) return;
     QString name = m_fileModel->item(index.row(), 0)->text();
-    // TODO: navigate into folder or open file
+
+    // Check if it's a folder by looking in the folder model
+    for (int r = 0; r < m_folderModel->rowCount(); r++) {
+        if (m_folderModel->item(r, 0)->text() == name) {
+            navigateTo(m_internalPath.isEmpty() ? name : m_internalPath + "/" + name);
+            return;
+        }
+    }
 }
 
 void LWMainWindow::loadArchive(const QString &path)
@@ -222,9 +255,16 @@ void LWMainWindow::loadArchive(const QString &path)
     m_archivePath = path;
     m_internalPath.clear();
     m_pathEdit->setText(path);
-    setWindowTitle(tr("LWZip - %1").arg(QFileInfo(path).fileName()));
-    m_statusLabel->setText(tr("Opened: %1").arg(path));
-    refreshList();
+
+    if (m_archiveHandler->open(path)) {
+        setWindowTitle(tr("LWZip - %1").arg(QFileInfo(path).fileName()));
+        m_statusLabel->setText(tr("Opened: %1").arg(path));
+        refreshList();
+    } else {
+        m_statusLabel->setText(tr("Failed to open: %1").arg(path));
+        QMessageBox::warning(this, tr("Error"),
+            tr("Cannot open archive: %1").arg(path));
+    }
 }
 
 void LWMainWindow::refreshList()
@@ -232,8 +272,53 @@ void LWMainWindow::refreshList()
     m_fileModel->removeRows(0, m_fileModel->rowCount());
     m_folderModel->removeRows(0, m_folderModel->rowCount());
 
-    // TODO: use 7zip core to list archive contents
-    // Apply m_encoding.currentCodePage() for filename decoding
+    if (!m_archiveHandler->isOpen())
+        return;
+
+    unsigned codePage = m_encoding.currentCodePage();
+    QList<LWArchiveItem> items = m_archiveHandler->listItems(codePage);
+
+    for (const auto &item : items) {
+        // Filter by current internal path
+        if (!m_internalPath.isEmpty()) {
+            if (!item.name.startsWith(m_internalPath + "/"))
+                continue;
+        }
+
+        // Get relative name
+        QString displayName = item.name;
+        if (!m_internalPath.isEmpty())
+            displayName = item.name.mid(m_internalPath.length() + 1);
+
+        // Skip sub-directory items (only show direct children)
+        if (displayName.contains('/')) {
+            // Add folder to tree if it's a direct child folder
+            QString folderName = displayName.left(displayName.indexOf('/'));
+            bool found = false;
+            for (int r = 0; r < m_folderModel->rowCount(); r++) {
+                if (m_folderModel->item(r, 0)->text() == folderName) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found)
+                m_folderModel->appendRow(new QStandardItem(folderName));
+            continue;
+        }
+
+        QList<QStandardItem *> row;
+        row << new QStandardItem(displayName);
+        row << new QStandardItem(item.isDirectory ? QString() : QString::number(item.size));
+        row << new QStandardItem(item.packedSize > 0 ? QString::number(item.packedSize) : QString());
+        row << new QStandardItem(item.modified.isValid() ? item.modified.toString("yyyy-MM-dd HH:mm:ss") : QString());
+        row << new QStandardItem(item.crc);
+        m_fileModel->appendRow(row);
+
+        if (item.isDirectory)
+            m_folderModel->appendRow(new QStandardItem(displayName));
+    }
+
+    m_statusLabel->setText(tr("%1 items").arg(m_fileModel->rowCount()));
 }
 
 void LWMainWindow::navigateTo(const QString &internalPath)

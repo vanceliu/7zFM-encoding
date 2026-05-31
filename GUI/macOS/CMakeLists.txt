@@ -2,11 +2,13 @@ set(LWZIP_MAC_SOURCES
     main.cpp
     LWMainWindow.cpp
     LWEncodingSwitch.cpp
+    LWArchiveHandler.cpp
 )
 
 set(LWZIP_MAC_HEADERS
     LWMainWindow.h
     LWEncodingSwitch.h
+    LWArchiveHandler.h
 )
 
 add_executable(lwzip ${LWZIP_MAC_SOURCES} ${LWZIP_MAC_HEADERS})
