@@ -93,10 +93,10 @@ public:
 
   CApp():
     _window(NULL),
-    _encodingButton(NULL),
     AutoRefresh_Mode(true),
     NumPanels(2),
-    LastFocusedPanel(0)
+    LastFocusedPanel(0),
+    _encodingButton(NULL)
   {
     SetPanels_AutoRefresh_Mode();
   }
