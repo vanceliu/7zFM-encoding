@@ -3,103 +3,171 @@
 ## Project Overview
 
 基於 [ip7z/7zip](https://github.com/ip7z/7zip) 原始碼修改的跨平台壓縮/解壓縮 GUI 程式。
-支援 macOS 與 Windows，具備編碼切換、密碼加解密、多格式支援等功能。
+支援 macOS 與 Windows，核心新增功能為**即時編碼切換**，解決壓縮檔內檔名亂碼問題。
 
 ## Architecture
 
 ### Tech Stack
 
 - **Language:** C++ (與 7zip 原始碼一致)
-- **Windows GUI:** 原生 Win32 API (保持 7zip 原有 UI，僅加入編碼切換)
-- **macOS GUI:** Qt 6 (仿 7zip FileManager 外觀，加入編碼切換)
-- **Core Engine:** 7zip C/C++ core (直接整合)
+- **Windows GUI:** 原生 Win32 API (保持 7zip 原有 UI，加入 Encoding toolbar button)
+- **macOS GUI:** Qt 6 (仿 7zip FileManager 外觀，加入 Encoding popup menu)
+- **Core Engine:** 7zip C/C++ core (直接整合，最小化修改)
 - **Build System:** Windows 用 nmake (原生 makefile)，macOS 用 CMake + Qt6
-- **Distribution:** Portable executables (macOS / Windows)
+- **CI/CD:** GitHub Actions (Windows build + artifact upload)
+- **Distribution:** Portable executables (macOS .app / Windows .exe)
 
 ### Directory Structure
 
 ```
 lwzip/
-├── Asm/           — 7zip 組合語言優化 (CRC, SHA, AES, LZMA)
-├── C/             — 7zip C 核心 (LZMA SDK)
-├── CPP/           — 7zip C++ 層 (Archive, Compress, Crypto, UI)
-│   └── 7zip/UI/FileManager/
-│       ├── EncodingSwitch.h/cpp  — [新增] 編碼切換模組 (Windows)
-│       ├── App.h/cpp             — [修改] 加入編碼 ComboBox
-│       ├── FM.cpp                — [修改] 處理編碼切換事件
-│       ├── FM.mak               — [修改] 加入 EncodingSwitch.obj
-│       └── resource.h           — [修改] 加入 IDC_ENCODING_COMBO
-├── DOC/           — 7zip 原始文件
+├── Asm/                — 7zip 組合語言優化 (CRC, SHA, AES, LZMA)
+├── C/                  — 7zip C 核心 (LZMA SDK, 跨平台)
+├── CPP/                — 7zip C++ 層
+│   ├── Common/         — 通用工具 (String, UTF, Wildcard)
+│   ├── Windows/        — Windows 抽象層 (File, Registry, Control)
+│   ├── 7zip/
+│   │   ├── Archive/    — 壓縮格式 handlers (Zip, 7z, Rar, Tar...)
+│   │   │   └── Zip/ZipHandler.cpp  — [修改] kpidPath 加入 codepage override
+│   │   ├── Compress/   — 壓縮演算法 (LZMA, Deflate, PPMd...)
+│   │   ├── Crypto/     — 加密 (AES, ZipCrypto, Rar AES)
+│   │   ├── LWZipCodePage.h/cpp     — [新增] 全域 codepage override 狀態
+│   │   ├── UI/
+│   │   │   ├── Agent/
+│   │   │   │   └── AgentProxy.cpp  — [修改] 跳過 GetRawProps 快速路徑
+│   │   │   ├── FileManager/
+│   │   │   │   ├── EncodingSwitch.h/cpp — [新增] 編碼切換模組
+│   │   │   │   ├── App.h/cpp       — [修改] Encoding toolbar button + popup menu
+│   │   │   │   ├── FM.cpp          — [修改] TBN_DROPDOWN + WM_COMMAND 處理
+│   │   │   │   ├── FM.mak          — [修改] 加入 EncodingSwitch.obj
+│   │   │   │   ├── resource.h      — [修改] IDC_ENCODING_COMBO, IDB_ENCODING
+│   │   │   │   ├── resource.rc     — [修改] 加入 Encoding bitmap 資源
+│   │   │   │   ├── Encoding.bmp    — [新增] 大圖 icon (48x36, bold "A")
+│   │   │   │   └── Encoding2.bmp   — [新增] 小圖 icon (24x24, bold "A")
+│   │   │   └── Common/             — UI 共用 (OpenArchive, Extract, Update)
+│   │   └── Bundles/
+│   │       └── Fm/makefile          — [修改] 加入 LWZipCodePage.obj
+│   └── Build.mak                    — 7zip 共用建構規則
+├── DOC/                — 7zip 原始文件
 ├── GUI/
-│   └── macOS/     — macOS Qt GUI (仿 7zip FileManager)
-│       ├── LWMainWindow.h/cpp   — 主視窗 (含編碼切換)
-│       ├── LWEncodingSwitch.h/cpp — 編碼切換模組
+│   └── macOS/          — macOS Qt6 GUI
+│       ├── LWMainWindow.h/cpp       — 主視窗 (仿 7zip FM + Encoding popup)
+│       ├── LWEncodingSwitch.h/cpp   — 編碼切換模組 (macOS 版)
+│       ├── LWArchiveHandler.h/cpp   — 7z CLI wrapper (開啟/列出/解壓)
 │       ├── main.cpp
 │       └── CMakeLists.txt
-├── CMakeLists.txt — 頂層 CMake (macOS 建構用)
+├── .github/workflows/
+│   └── build-windows.yml           — GitHub Actions Windows build
+├── CMakeLists.txt      — 頂層 CMake (macOS 建構用)
 └── CLAUDE.md
 ```
 
-## Features
+### Branches
 
-### 1. 編碼切換 (Encoding Switching) — 核心新增功能
+- `main` — 含編碼切換功能的修改版
+- `original-7zip` — 未修改的原始 7zip source (方便 diff 比對)
 
-- Toolbar 右側內建編碼下拉選單，可即時切換顯示編碼
-- 支援編碼：UTF-8, Shift-JIS, Big5, GBK, EUC-KR, ISO-8859-1, Windows-1252, EUC-JP, GB2312, KOI8-R, Windows-1251
-- 切換後壓縮檔內的檔名顯示即時更新
-- 整合 7zip 現有的 codepage 機制
+## Encoding Switch — 核心功能實作
 
-### 2. 壓縮格式支援 (與 7zip 完全一致)
+### 運作原理 (Windows)
 
-**讀寫 (壓縮 + 解壓):**
-- 7z, ZIP (預設), XZ, GZIP, BZIP2, TAR, WIM
+```
+User clicks Encoding → selects Shift-JIS
+    ↓
+App::OnEncodingSelected(1)
+    ↓
+EncodingSwitch::SetCurrentIndex(1)
+  → g_LWZip_ForceCodePage = true
+  → g_LWZip_CodePage = 932
+    ↓
+panel.CloseOpenFolders()     ← 關閉已開啟的壓縮檔
+    ↓
+panel.BindToPathAndRefresh(path)
+    ↓
+_parentFolders is empty → takes filesystem path
+    ↓
+OpenAsArc() → new CAgent → CProxyArc::Load()
+    ↓
+arc.Archive->GetProperty(i, kpidPath, &prop)
+    ↓
+ZipHandler::GetProperty checks g_LWZip_ForceCodePage
+  → item.GetUnicodeString(res, item.Name, false, true, 932)
+    ↓
+Filename decoded with Shift-JIS → 正確顯示日文
+```
 
-**唯讀 (僅解壓):**
-- RAR (含 RAR5), CAB, ISO, NSIS, UDF, ARJ, CPIO, RPM, ZSTD, CHM, VHD, XAR, SquashFS, QCOW, APM, HFS
+### 關鍵修改點
 
-### 3. 密碼加密/解密 (7zip 原有功能)
+1. **`LWZipCodePage.h/cpp`** — 全域 codepage 狀態 (`g_LWZip_ForceCodePage`, `g_LWZip_CodePage`)
+2. **`ZipHandler.cpp` GetProperty(kpidPath)** — 檢查全域 override，用指定 codepage 解碼檔名
+3. **`AgentProxy.cpp` CProxyArc::Load()** — 當 override 啟用時跳過 GetRawProps 快速路徑
+4. **`App.cpp` OnEncodingSelected()** — CloseOpenFolders + BindToPathAndRefresh 強制重新開啟
+5. **`EncodingSwitch.h/cpp`** — 編碼列表管理、設定全域狀態
 
-- 壓縮時可設定密碼 (支援 AES-256 加密)
-- 解壓時彈出密碼輸入對話框
-- 支援加密格式：7z AES, ZIP AES, ZipCrypto
+### 支援的編碼
 
-### 4. 跨平台
-
-- **Windows:** 原生 7zip Win32 UI + 編碼切換 ComboBox
-- **macOS:** Qt6 GUI 仿 7zip FileManager 外觀 + 編碼切換
-- Portable executable 形式發布
+| 名稱 | Code Page | 用途 |
+|------|-----------|------|
+| UTF-8 | 65001 | 預設 |
+| Shift-JIS | 932 | 日文 |
+| Big5 | 950 | 繁體中文 |
+| GBK | 936 | 簡體中文 |
+| EUC-KR | 949 | 韓文 |
+| ISO-8859-1 | 28591 | 西歐 |
+| Windows-1252 | 1252 | 西歐 (Windows) |
+| EUC-JP | 20932 | 日文 (Unix) |
+| GB2312 | 20936 | 簡體中文 (舊) |
+| KOI8-R | 20866 | 俄文 |
+| Windows-1251 | 1251 | 俄文 (Windows) |
+| System (ACP) | 0 | 系統預設 |
+| OEM | 1 | OEM code page |
 
 ## Build Instructions
 
 ### macOS
 
 ```bash
-# Prerequisites: Qt 6, CMake 3.20+, C++17 compiler
-brew install cmake qt@6
+brew install cmake qt@6 p7zip
 
 mkdir build && cd build
 cmake .. -DCMAKE_PREFIX_PATH=$(brew --prefix qt@6)
 cmake --build . --parallel
+
+# 執行
+open GUI/macOS/lwzip.app
+# 或帶參數開啟壓縮檔
+./GUI/macOS/lwzip.app/Contents/MacOS/lwzip /path/to/archive.zip
 ```
 
-### Windows
+### Windows (本機)
 
 ```cmd
-# Prerequisites: Visual Studio, Windows SDK
+# 需要 Visual Studio 2022 + Windows SDK
+# 開啟 Developer Command Prompt
+
 cd CPP\7zip\Bundles\Fm
-nmake
+nmake NEW_COMPILER=1 MY_STATIC_LINK=1
+
+# 產出: CPP\7zip\Bundles\Fm\x64\7zFM.exe
 ```
+
+### Windows (GitHub Actions)
+
+Push 到 main branch 後自動觸發，或手動 dispatch。
+下載: Actions → 最新 run → Artifacts → `lwzip-windows-x64`
 
 ## Design Principles
 
-- **最小化修改 7zip core** — 方便未來同步上游更新
-- Windows 版只在原生 UI 上加入編碼切換 ComboBox，其餘保持不變
-- macOS 版用 Qt 重現 7zip FileManager 的基本外觀和操作邏輯
-- 編碼切換邏輯集中在 `EncodingSwitch` 模組
+- **最小化修改 7zip core** — 只改必要的地方，方便未來同步上游更新
+- **不改變原有行為** — 預設不啟用 codepage override，只有使用者主動切換才生效
+- **Windows 版保持原生 UI** — 只加入一個 toolbar button，其餘完全不變
+- **macOS 版仿原生外觀** — 用 Qt 重現 7zip FM 的基本佈局和操作邏輯
 
 ## Development Guidelines
 
 - 遵循 7zip 原有的 coding style (C++ 層)
-- macOS Qt GUI 層使用 Qt 官方推薦的命名慣例 (LW 前綴)
-- 新增功能需同時考慮 macOS 和 Windows 的行為差異
-- `original-7zip` branch 保存未修改的原始碼，方便 diff 比對
+- MSVC 編譯使用 `-Wall -WX`，所有 warning 都是 error
+- 不使用 `..` 相對路徑 include（觸發 C4464）
+- 成員初始化順序必須與宣告順序一致（C5038）
+- macOS Qt GUI 層使用 Qt 官方命名慣例 (LW 前綴)
+- `original-7zip` branch 保存未修改的原始碼
