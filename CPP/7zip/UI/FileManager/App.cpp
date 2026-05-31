@@ -339,7 +339,16 @@ void CApp::OnEncodingSelected(unsigned index)
   if (index < CEncodingSwitch::GetNumEncodings())
   {
     g_EncodingSwitch.SetCurrentIndex(index);
-    RefreshAllPanels();
+    // Re-open current path to force proxy reload with new codepage
+    for (unsigned i = 0; i < NumPanels; i++)
+    {
+      unsigned panelIndex = i;
+      if (NumPanels == 1)
+        panelIndex = LastFocusedPanel;
+      CPanel &panel = Panels[panelIndex];
+      if (panel.PanelCreated)
+        panel.BindToPathAndRefresh(panel._currentFolderPrefix);
+    }
   }
 }
 
