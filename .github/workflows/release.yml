@@ -2,11 +2,6 @@ name: Release
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: 'Release version (synced with 7-Zip, e.g. 26.01)'
-        required: true
-        default: '26.01'
 
 permissions:
   contents: write
@@ -23,7 +18,7 @@ jobs:
         shell: bash
         run: |
           VER=$(grep 'MY_VERSION_NUMBERS' C/7zVersion.h | grep -oP '"\K[^"]+')
-          echo "sevenzip_version=$VER" >> $GITHUB_OUTPUT
+          echo "version=$VER" >> $GITHUB_OUTPUT
           echo "7-Zip version: $VER"
 
       - name: Build 7zFM.exe
@@ -44,24 +39,24 @@ jobs:
       - name: Create release archive
         shell: pwsh
         run: |
-          Compress-Archive -Path release\* -DestinationPath "7zFM-encoding-v${{ github.event.inputs.version }}-x64.zip"
+          Compress-Archive -Path release\* -DestinationPath "7zFM-encoding-v${{ steps.version.outputs.version }}-x64.zip"
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ github.event.inputs.version }}
-          name: 7zFM-encoding v${{ github.event.inputs.version }} (based on 7-Zip ${{ steps.version.outputs.sevenzip_version }})
+          tag_name: v${{ steps.version.outputs.version }}
+          name: 7zFM-encoding v${{ steps.version.outputs.version }} (based on 7-Zip ${{ steps.version.outputs.version }})
           body: |
-            ## 7zFM-encoding v${{ github.event.inputs.version }}
+            ## 7zFM-encoding v${{ steps.version.outputs.version }}
 
-            Based on 7-Zip ${{ steps.version.outputs.sevenzip_version }}
+            Based on 7-Zip ${{ steps.version.outputs.version }}
 
             ### Features
             - Encoding switch toolbar button for real-time filename codepage switching
             - Supports UTF-8, Shift-JIS, Big5, GBK, EUC-KR, and more
 
             ### Usage
-            1. Download `7zFM-encoding-v${{ github.event.inputs.version }}-x64.zip`
+            1. Download `7zFM-encoding-v${{ steps.version.outputs.version }}-x64.zip`
             2. Extract and run `7zFM.exe`
             3. Open an archive with garbled filenames
             4. Click the Encoding button in toolbar and select the correct codepage
@@ -69,6 +64,6 @@ jobs:
             ### Supported Encodings
             UTF-8, Shift-JIS, Big5, GBK, EUC-KR, ISO-8859-1, Windows-1252, EUC-JP, GB2312, KOI8-R, Windows-1251
           files: |
-            7zFM-encoding-v${{ github.event.inputs.version }}-x64.zip
+            7zFM-encoding-v${{ steps.version.outputs.version }}-x64.zip
           draft: false
           prerelease: false
