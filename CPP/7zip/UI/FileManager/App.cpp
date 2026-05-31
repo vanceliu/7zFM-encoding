@@ -271,9 +271,53 @@ void CApp::ReloadToolbars()
 
     _toolBar.AutoSize();
   }
+
+  CreateEncodingCombo();
 }
 
-void CApp::SaveToolbarChanges()
+void CApp::CreateEncodingCombo()
+{
+  if (_encodingCombo)
+  {
+    ::DestroyWindow(_encodingCombo);
+    _encodingCombo = NULL;
+  }
+
+  RECT tbRect;
+  ::GetWindowRect(_toolBar, &tbRect);
+  ::MapWindowPoints(NULL, _window, (LPPOINT)&tbRect, 2);
+
+  _encodingCombo = ::CreateWindowExW(0, L"COMBOBOX", NULL,
+      WS_CHILD | WS_VISIBLE | CBS_DROPDOWNLIST | WS_VSCROLL,
+      tbRect.right + 8, tbRect.top + 2, 140, 200,
+      _window, (HMENU)(UINT_PTR)IDC_ENCODING_COMBO, g_hInstance, NULL);
+
+  if (_encodingCombo)
+  {
+    ::SendMessageW(_encodingCombo, WM_SETFONT,
+        (WPARAM)::GetStockObject(DEFAULT_GUI_FONT), TRUE);
+
+    const CEncodingInfo *encodings = CEncodingSwitch::GetEncodings();
+    unsigned num = CEncodingSwitch::GetNumEncodings();
+    for (unsigned i = 0; i < num; i++)
+      ::SendMessageW(_encodingCombo, CB_ADDSTRING, 0, (LPARAM)encodings[i].Name);
+
+    ::SendMessageW(_encodingCombo, CB_SETCURSEL,
+        (WPARAM)g_EncodingSwitch.GetCurrentIndex(), 0);
+  }
+}
+
+void CApp::OnEncodingChanged()
+{
+  if (!_encodingCombo)
+    return;
+  int sel = (int)::SendMessageW(_encodingCombo, CB_GETCURSEL, 0, 0);
+  if (sel >= 0)
+  {
+    g_EncodingSwitch.SetCurrentIndex((unsigned)sel);
+    RefreshAllPanels();
+  }
+}
 {
   SaveToolbar();
   ReloadToolbars();

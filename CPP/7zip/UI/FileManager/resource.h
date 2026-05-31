@@ -118,6 +118,10 @@
 #define IDM_HELP_CONTENTS        960
 #define IDM_ABOUT                961
 
+// LWZip: Encoding switch
+#define IDC_ENCODING_COMBO       970
+#define IDM_ENCODING_CHANGED     971
+
 #define IDS_OPTIONS                     2100
 
 #define IDS_N_SELECTED_ITEMS            3002

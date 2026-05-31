@@ -1,24 +1,26 @@
-#ifndef LWZIP_FILE_MANAGER_WINDOW_H
-#define LWZIP_FILE_MANAGER_WINDOW_H
+#ifndef LWZIP_MAIN_WINDOW_H
+#define LWZIP_MAIN_WINDOW_H
 
 #include <QMainWindow>
 #include <QTreeView>
 #include <QTableView>
 #include <QSplitter>
+#include <QToolBar>
+#include <QComboBox>
 #include <QLabel>
 #include <QLineEdit>
-#include <QProgressBar>
+#include <QStatusBar>
 #include <QStandardItemModel>
+#include <QProcess>
 
-class EncodingSelector;
-class LanguageSelector;
+#include "LWEncodingSwitch.h"
 
-class FileManagerWindow : public QMainWindow
+class LWMainWindow : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit FileManagerWindow(QWidget *parent = nullptr);
+    explicit LWMainWindow(QWidget *parent = nullptr);
 
 protected:
     void dragEnterEvent(QDragEnterEvent *event) override;
@@ -27,37 +29,42 @@ protected:
 private slots:
     void onOpenArchive();
     void onExtract();
-    void onExtractHere();
-    void onCompress();
+    void onAdd();
+    void onTest();
+    void onCopy();
+    void onMove();
+    void onDelete();
+    void onInfo();
+    void onEncodingChanged(int index);
     void onNavigateUp();
-    void onPathChanged();
+    void onPathEntered();
     void onItemDoubleClicked(const QModelIndex &index);
-    void onEncodingChanged(const QString &encoding);
 
 private:
     void setupUI();
     void setupMenuBar();
     void setupToolBar();
-    void setupStatusBar();
     void loadArchive(const QString &path);
-    void navigateToFolder(const QString &internalPath);
-    void refreshFileList();
+    void refreshList();
+    void navigateTo(const QString &internalPath);
 
+    // UI
     QSplitter *m_splitter = nullptr;
     QTreeView *m_folderTree = nullptr;
     QTableView *m_fileTable = nullptr;
     QLineEdit *m_pathEdit = nullptr;
-    QProgressBar *m_progressBar = nullptr;
+    QComboBox *m_encodingCombo = nullptr;
     QLabel *m_statusLabel = nullptr;
-    QLabel *m_fileCountLabel = nullptr;
-    EncodingSelector *m_encodingSelector = nullptr;
-    LanguageSelector *m_languageSelector = nullptr;
 
+    // Models
     QStandardItemModel *m_folderModel = nullptr;
     QStandardItemModel *m_fileModel = nullptr;
 
-    QString m_currentArchivePath;
-    QString m_currentInternalPath;
+    // State
+    LWEncodingSwitch m_encoding;
+    QString m_archivePath;
+    QString m_internalPath;
+    QProcess *m_7zProcess = nullptr;
 };
 
-#endif // LWZIP_FILE_MANAGER_WINDOW_H
+#endif

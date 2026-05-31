@@ -1,6 +1,5 @@
 #include <QApplication>
-#include "SimpleWindow.h"
-#include "EncodingManager.h"
+#include "LWMainWindow.h"
 
 int main(int argc, char *argv[])
 {
@@ -9,9 +8,7 @@ int main(int argc, char *argv[])
     app.setApplicationVersion("0.1.0");
     app.setOrganizationName("LWZip");
 
-    EncodingManager encodingManager;
-
-    SimpleWindow window;
+    LWMainWindow window;
     window.show();
 
     return app.exec();

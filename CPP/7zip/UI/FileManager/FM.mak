@@ -15,6 +15,7 @@ FM_OBJS = \
   $O\BrowseDialog.obj \
   $O\BrowseDialog2.obj \
   $O\ClassDefs.obj \
+  $O\EncodingSwitch.obj \
   $O\EnumFormatEtc.obj \
   $O\ExtractCallback.obj \
   $O\FileFolderPluginOpen.obj \

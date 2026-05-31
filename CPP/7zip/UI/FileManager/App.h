@@ -7,6 +7,7 @@
 #include "../../../Windows/Control/ImageList.h"
 
 #include "AppState.h"
+#include "EncodingSwitch.h"
 #include "Panel.h"
 
 class CApp;
@@ -80,6 +81,9 @@ public:
   #endif
   NWindows::NControl::CToolBar _toolBar;
 
+  // LWZip: Encoding switch ComboBox
+  HWND _encodingCombo;
+
   CDropTarget *_dropTargetSpec;
   CMyComPtr<IDropTarget> _dropTarget;
 
@@ -89,6 +93,7 @@ public:
 
   CApp():
     _window(NULL),
+    _encodingCombo(NULL),
     AutoRefresh_Mode(true),
     NumPanels(2),
     LastFocusedPanel(0)
@@ -247,6 +252,8 @@ public:
   void SetBookmark(unsigned index) { GetFocusedPanel().SetBookmark(index); }
 
   void ReloadToolbars();
+  void CreateEncodingCombo();
+  void OnEncodingChanged();
   void ReadToolbar()
   {
     const UInt32 mask = ReadToolbarsMask();
