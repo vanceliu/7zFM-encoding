@@ -1,4 +1,4 @@
-# LWZip
+# 7zFM-encoding
 
 Cross-platform archive manager based on [7-Zip](https://github.com/ip7z/7zip) with **real-time encoding switching** to fix garbled filenames in archives.
 
@@ -59,7 +59,7 @@ Pre-built Windows binaries are available from [Actions](../../actions) — downl
 
 ## How It Works
 
-When you open a ZIP archive with non-UTF-8 filenames (e.g., Japanese Shift-JIS, Chinese Big5), the filenames appear as garbled text. LWZip adds an Encoding button to the 7-Zip toolbar that lets you switch the codepage on the fly — the archive is re-opened with the selected encoding and filenames display correctly.
+When you open a ZIP archive with non-UTF-8 filenames (e.g., Japanese Shift-JIS, Chinese Big5), the filenames appear as garbled text. 7zFM-encoding adds an Encoding button to the 7-Zip toolbar that lets you switch the codepage on the fly — the archive is re-opened with the selected encoding and filenames display correctly.
 
 ## Supported Encodings
 
