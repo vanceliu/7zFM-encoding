@@ -20,6 +20,8 @@
 
 #include "../../Archive/Common/ItemNameUtils.h"
 
+#include "../../LWZipCodePage.h"
+
 #include "AgentProxy.h"
 
 using namespace NWindows;
@@ -273,7 +275,8 @@ HRESULT CProxyArc::Load(const CArc &arc, IProgress *progress)
 
     #if defined(MY_CPU_LE) && defined(_WIN32)
     // it works only if (sizeof(wchar_t) == 2)
-    if (arc.GetRawProps)
+    // LWZip: skip raw props when codepage override is active
+    if (arc.GetRawProps && !g_LWZip_ForceCodePage)
     {
       const void *p;
       UInt32 size;
