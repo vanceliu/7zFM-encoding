@@ -1,9 +1,9 @@
-# LWZip — Cross-Platform Archive Manager
+# LWZip — Windows Archive Manager with Encoding Switch
 
 ## Project Overview
 
-基於 [ip7z/7zip](https://github.com/ip7z/7zip) 原始碼修改的跨平台壓縮/解壓縮 GUI 程式。
-支援 macOS 與 Windows，核心新增功能為**即時編碼切換**，解決壓縮檔內檔名亂碼問題。
+基於 [ip7z/7zip](https://github.com/ip7z/7zip) 原始碼修改的 Windows 壓縮/解壓縮 GUI 程式。
+核心新增功能為**即時編碼切換**，解決壓縮檔內檔名亂碼問題。
 
 ## Architecture
 
@@ -11,11 +11,10 @@
 
 - **Language:** C++ (與 7zip 原始碼一致)
 - **Windows GUI:** 原生 Win32 API (保持 7zip 原有 UI，加入 Encoding toolbar button)
-- **macOS GUI:** Qt 6 (仿 7zip FileManager 外觀，加入 Encoding popup menu)
 - **Core Engine:** 7zip C/C++ core (直接整合，最小化修改)
-- **Build System:** Windows 用 nmake (原生 makefile)，macOS 用 CMake + Qt6
+- **Build System:** nmake (原生 makefile)
 - **CI/CD:** GitHub Actions (Windows build + artifact upload)
-- **Distribution:** Portable executables (macOS .app / Windows .exe)
+- **Distribution:** Portable executable (Windows .exe)
 
 ### Directory Structure
 
@@ -49,16 +48,8 @@ lwzip/
 │   │       └── Fm/makefile          — [修改] 加入 LWZipCodePage.obj
 │   └── Build.mak                    — 7zip 共用建構規則
 ├── DOC/                — 7zip 原始文件
-├── GUI/
-│   └── macOS/          — macOS Qt6 GUI
-│       ├── LWMainWindow.h/cpp       — 主視窗 (仿 7zip FM + Encoding popup)
-│       ├── LWEncodingSwitch.h/cpp   — 編碼切換模組 (macOS 版)
-│       ├── LWArchiveHandler.h/cpp   — 7z CLI wrapper (開啟/列出/解壓)
-│       ├── main.cpp
-│       └── CMakeLists.txt
 ├── .github/workflows/
 │   └── build-windows.yml           — GitHub Actions Windows build
-├── CMakeLists.txt      — 頂層 CMake (macOS 建構用)
 └── CLAUDE.md
 ```
 
@@ -124,21 +115,6 @@ Filename decoded with Shift-JIS → 正確顯示日文
 
 ## Build Instructions
 
-### macOS
-
-```bash
-brew install cmake qt@6 p7zip
-
-mkdir build && cd build
-cmake .. -DCMAKE_PREFIX_PATH=$(brew --prefix qt@6)
-cmake --build . --parallel
-
-# 執行
-open GUI/macOS/lwzip.app
-# 或帶參數開啟壓縮檔
-./GUI/macOS/lwzip.app/Contents/MacOS/lwzip /path/to/archive.zip
-```
-
 ### Windows (本機)
 
 ```cmd
@@ -160,8 +136,7 @@ Push 到 main branch 後自動觸發，或手動 dispatch。
 
 - **最小化修改 7zip core** — 只改必要的地方，方便未來同步上游更新
 - **不改變原有行為** — 預設不啟用 codepage override，只有使用者主動切換才生效
-- **Windows 版保持原生 UI** — 只加入一個 toolbar button，其餘完全不變
-- **macOS 版仿原生外觀** — 用 Qt 重現 7zip FM 的基本佈局和操作邏輯
+- **保持原生 UI** — 只加入一個 toolbar button，其餘完全不變
 
 ## Development Guidelines
 
@@ -169,5 +144,4 @@ Push 到 main branch 後自動觸發，或手動 dispatch。
 - MSVC 編譯使用 `-Wall -WX`，所有 warning 都是 error
 - 不使用 `..` 相對路徑 include（觸發 C4464）
 - 成員初始化順序必須與宣告順序一致（C5038）
-- macOS Qt GUI 層使用 Qt 官方命名慣例 (LW 前綴)
 - `original-7zip` branch 保存未修改的原始碼

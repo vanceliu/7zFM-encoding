@@ -1,18 +1,17 @@
 # 7zFM-encoding
 
-Cross-platform archive manager based on [7-Zip](https://github.com/ip7z/7zip) with **real-time encoding switching** to fix garbled filenames in archives.
+Windows archive manager based on [7-Zip](https://github.com/ip7z/7zip) with **real-time encoding switching** to fix garbled filenames in archives.
 
 ## Features
 
 - **Encoding Switch** — Toolbar button to instantly switch filename decoding (UTF-8, Shift-JIS, Big5, GBK, EUC-KR, and more)
 - **Full 7-Zip format support** — All formats supported by 7-Zip (ZIP, 7z, RAR, TAR, GZ, XZ, ISO, CAB, etc.)
 - **Password encryption/decryption** — AES-256, ZipCrypto (inherited from 7-Zip)
-- **Cross-platform** — Windows (native Win32 UI) and macOS (Qt6 GUI)
+- **Native Win32 UI** — Single toolbar button addition, everything else unchanged from 7-Zip
 - **Portable** — No installation required
 
 ## Screenshots
 
-### Windows
 Toolbar with Encoding dropdown menu (click to switch codepage):
 
 ```
@@ -28,8 +27,6 @@ Add | Extract | Test | Copy | Move | Delete | Info | [A▾] Encoding
 
 ## Build
 
-### Windows
-
 Requires Visual Studio 2022 with C++ Desktop development tools.
 
 ```cmd
@@ -38,20 +35,6 @@ nmake NEW_COMPILER=1 MY_STATIC_LINK=1
 ```
 
 Output: `CPP\7zip\Bundles\Fm\x64\7zFM.exe`
-
-### macOS
-
-Requires CMake 3.20+, Qt 6, and a C++17 compiler.
-
-```bash
-brew install cmake qt@6
-
-mkdir build && cd build
-cmake .. -DCMAKE_PREFIX_PATH=$(brew --prefix qt@6)
-cmake --build . --parallel
-```
-
-Output: `build/GUI/macOS/lwzip.app`
 
 ### GitHub Actions
 
