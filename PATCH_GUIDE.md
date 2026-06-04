@@ -34,7 +34,7 @@
 | `CPP/7zip/UI/FileManager/App.cpp` | 修改 | 實作 toolbar button + popup menu + CloseOpenFolders 重新開啟 |
 | `CPP/7zip/UI/FileManager/FM.cpp` | 修改 | 處理 `TBN_DROPDOWN` 和 `WM_COMMAND` 編碼選單事件 |
 | `CPP/7zip/UI/FileManager/FM.mak` | 修改 | 加入 `EncodingSwitch.obj` |
-| `CPP/7zip/Bundles/Fm/makefile` | 修改 | 加入 `LWZipCodePage.obj` 和建構規則 |
+| `CPP/7zip/UI/FileManager/makefile` | 修改 | 加入 `LWZipCodePage.obj` 和建構規則 |
 
 ---
 
@@ -85,13 +85,18 @@ git merge original-7zip
 6. **`CPP/7zip/UI/FileManager/FM.mak`**
    - 確認 `EncodingSwitch.obj` 在 `FM_OBJS` 裡
 
-7. **`CPP/7zip/Bundles/Fm/makefile`**
+7. **`CPP/7zip/UI/FileManager/makefile`**
    - 確認 `LWZipCodePage.obj` 和建構規則
 
 ### Step 4: 驗證建構
 
 ```cmd
-cd CPP\7zip\Bundles\Fm
+# Build 7z.dll
+cd CPP\7zip\Bundles\Format7zF
+nmake NEW_COMPILER=1 MY_STATIC_LINK=1
+
+# Build 7zFM.exe
+cd ..\..\UI\FileManager
 nmake NEW_COMPILER=1 MY_STATIC_LINK=1
 ```
 
@@ -198,7 +203,16 @@ void CApp::OnEncodingSelected(unsigned index)
       CPanel &panel = Panels[panelIndex];
       if (panel.PanelCreated)
       {
-        UString path = panel._currentFolderPrefix;
+        UString path;
+        if (!panel._parentFolders.IsEmpty())
+        {
+          // Use the archive file path (not subfolder path) because subfolder
+          // names are decoded with the old codepage and won't match after switch
+          path = panel._parentFolders[0].ParentFolderPath;
+          path += panel._parentFolders[0].RelPath;
+        }
+        else
+          path = panel._currentFolderPrefix;
         panel.CloseOpenFolders();
         panel.BindToPathAndRefresh(path);
       }
@@ -268,15 +282,16 @@ FM_OBJS = \
   ...
 ```
 
-### Bundles/Fm/makefile — 加入 LWZipCodePage.obj
+### UI/FileManager/makefile — 加入 LWZipCodePage.obj
 
 ```makefile
-// 在 !include "../../7zip.mak" 之前加入
+// 在 !include "../../Sort.mak" 之前加入
 LWZIP_OBJS = \
   $O\LWZipCodePage.obj \
 
 CURRENT_OBJS = $(LWZIP_OBJS)
 
+!include "../../Sort.mak"
 !include "../../7zip.mak"
 
 $O\LWZipCodePage.obj: ../../LWZipCodePage.cpp

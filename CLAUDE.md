@@ -121,16 +121,24 @@ Filename decoded with Shift-JIS → 正確顯示日文
 # 需要 Visual Studio 2022 + Windows SDK
 # 開啟 Developer Command Prompt
 
-cd CPP\7zip\Bundles\Fm
+# Build 7z.dll (格式庫)
+cd CPP\7zip\Bundles\Format7zF
 nmake NEW_COMPILER=1 MY_STATIC_LINK=1
 
-# 產出: CPP\7zip\Bundles\Fm\x64\7zFM.exe
+# Build 7zFM.exe (File Manager)
+cd ..\..\UI\FileManager
+nmake NEW_COMPILER=1 MY_STATIC_LINK=1
+
+# 產出:
+#   CPP\7zip\Bundles\Format7zF\x64\7z.dll
+#   CPP\7zip\UI\FileManager\x64\7zFM.exe
+# 使用時將 7zFM.exe + 7z.dll 放在同一目錄
 ```
 
 ### Windows (GitHub Actions)
 
 Push 到 main branch 後自動觸發，或手動 dispatch。
-下載: Actions → 最新 run → Artifacts → `lwzip-windows-x64`
+下載: Actions → 最新 run → Artifacts → `7zFM-encoding-windows-x64`
 
 ## Design Principles
 

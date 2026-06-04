@@ -14,18 +14,26 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Build 7z.dll (Format library)
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cd CPP\7zip\Bundles\Format7zF
+          nmake NEW_COMPILER=1 MY_STATIC_LINK=1
+
       - name: Build 7zFM.exe (File Manager with Encoding Switch)
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          cd CPP\7zip\Bundles\Fm
+          cd CPP\7zip\UI\FileManager
           nmake NEW_COMPILER=1 MY_STATIC_LINK=1
 
       - name: Collect artifacts
         shell: cmd
         run: |
           mkdir dist
-          copy CPP\7zip\Bundles\Fm\x64\7zFM.exe dist\
+          copy CPP\7zip\Bundles\Format7zF\x64\7z.dll dist\
+          copy CPP\7zip\UI\FileManager\x64\7zFM.exe dist\
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4

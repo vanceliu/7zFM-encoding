@@ -106,5 +106,13 @@ C_OBJS = $(C_OBJS) \
   $O\CpuArch.obj \
   $O\Threads.obj \
 
+LWZIP_OBJS = \
+  $O\LWZipCodePage.obj \
+
+CURRENT_OBJS = $(LWZIP_OBJS)
+
 !include "../../Sort.mak"
 !include "../../7zip.mak"
+
+$O\LWZipCodePage.obj: ../../LWZipCodePage.cpp
+	$(COMPL_O2)

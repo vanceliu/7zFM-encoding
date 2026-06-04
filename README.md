@@ -30,15 +30,20 @@ Add | Extract | Test | Copy | Move | Delete | Info | [A▾] Encoding
 Requires Visual Studio 2022 with C++ Desktop development tools.
 
 ```cmd
-cd CPP\7zip\Bundles\Fm
+# Build 7z.dll (format library)
+cd CPP\7zip\Bundles\Format7zF
+nmake NEW_COMPILER=1 MY_STATIC_LINK=1
+
+# Build 7zFM.exe (File Manager)
+cd ..\..\UI\FileManager
 nmake NEW_COMPILER=1 MY_STATIC_LINK=1
 ```
 
-Output: `CPP\7zip\Bundles\Fm\x64\7zFM.exe`
+Output: `7z.dll` + `7zFM.exe` (place in the same directory to run)
 
 ### GitHub Actions
 
-Pre-built Windows binaries are available from [Actions](../../actions) — download the `lwzip-windows-x64` artifact from the latest successful run.
+Pre-built Windows binaries are available from [Actions](../../actions) — download the `7zFM-encoding-windows-x64` artifact from the latest successful run.
 
 ## How It Works
 
